@@ -1,15 +1,21 @@
-import json
 from typing import *
 
 from requests_toolbelt import threaded
 
+from src.base.exceptions import USDAFoodsError
+from src.base.loggers import Logger
+
 __all__ = [
-    'get_food_nutrients',
+    'get_data',
 ]
 
 # noinspection SpellCheckingInspection
 API_KEY: str = r'IAq4gn3KahA24GAAeEOZLNO6ghwzTWWtU7awLFw5'
 POST_URI: str = f'https://api.nal.usda.gov/fdc/v1/foods/search?api_key={API_KEY}'
+
+
+class HTTPRequestError(Exception):
+    pass
 
 
 class FoodIdNotFoundError(Exception):
@@ -20,7 +26,7 @@ class NutrientNotExtantError(Exception):
     pass
 
 
-def requests_for(food_ids: list[int]) -> list[dict[str, Union[str, dict[str, int]]]]:
+def requests_for(food_ids: List[int]) -> List[Dict[str, Union[str, Dict[str, int]]]]:
     """
     make a list of request data to pass to the threaded package
     the only difference between each element in the returned list is the food_id
@@ -34,7 +40,7 @@ def requests_for(food_ids: list[int]) -> list[dict[str, Union[str, dict[str, int
     } for fid in food_ids]
 
 
-def parse_response(http_response, nutrients: list[str]) -> dict:
+def parse_response(http_response, nutrients: List[str], output: Dict) -> int:
     """
     extract the amount of each nutrient from one food response
     include the food id from the response because requests might be serviced in any order
@@ -49,16 +55,22 @@ def parse_response(http_response, nutrients: list[str]) -> dict:
         # if a query succeeds but there is no matching food,
         # raise a descriptive exception
         query_term = _json['foodSearchCriteria']['query']
-        raise FoodIdNotFoundError(f'requesting food_id {query_term} returned no results')
+        raise FoodIdNotFoundError(f'Requesting food_id {query_term} returned no results')
 
     # searching by food_id returns a list of one element
     # we extract that element here
     response = results[0]
 
     # initialize working structures
-    # output is a dictionary containing the food id and will be extended in the loop
+    # output is a dictionary containing the description and will be extended in the loop
     fid = response['fdcId']
-    parsed_output = dict(food_id=fid)
+    description = response['description']
+
+    parsed_output = dict(
+        food_id=fid,
+        source='USDA',
+        description=description,
+    )
 
     # nutrients of interest are made into a set for fast operations
     # this is a to-do list of data to extract
@@ -92,65 +104,52 @@ def parse_response(http_response, nutrients: list[str]) -> dict:
         raise NutrientNotExtantError(f'{_nutrients_of_interest} not found in response for {fid}')
 
     # return whatever data have been parsed out if successful
-    return parsed_output
+    output[fid] = parsed_output
+    return fid
 
 
-def get_food_nutrients(foods: list[int], nutrients: list[str]) -> None:
+def get_data(food_ids, nutrients, max_misses: int, logger: Logger) -> Dict:
     """
     requests all data for each food
     parses out the nutrients of interest from the responses
-    passes results to the output function
+    passes results to caller
     """
+
+    log = logger.spawn('USDA')
 
     # given foods of interest, request those data from the API
-    responses, exceptions = threaded.map(requests_for(foods))
+    responses, exceptions = threaded.map(requests_for(food_ids))
+    log.info('Requested USDA data')
 
-    # parse each response
-    data = [parse_response(response, nutrients) for response in responses]
+    # raise any HTTP request error as fatal (this should never fail)
+    for e in exceptions:
+        raise USDAFoodsError(f'HTTP POST error') from e
 
-    # pass the data and exceptions generator through to the output function
-    output(data, exceptions)
+    output = dict()
 
+    # iterate through HTTP POST responses and parse them for desired nutrient info
+    for response in responses:
+        if max_misses:
+            try:
+                fid = parse_response(response, nutrients, output)
 
-def output(data, exceptions) -> None:
-    """
-    takes the parsed data and any http exceptions and displays them
-    this function is where a person might write results to file or enqueue them or whatever
-    """
+            except FoodIdNotFoundError as e:
+                # errors of this kind may happen up to USDA_MISSES_MAX_QTY before fatal
+                log.warning(str(e))
 
-    # print parsed JSON data in a readable format, with indentation
-    print(json.dumps(data, indent=4))
+            except NutrientNotExtantError as e:
+                # raise as fatal (this should never happen)
+                log.error(str(e), exc_info=False)
+                raise USDAFoodsError from e
 
-    # print HTTP exceptions if any
-    [print(exception) for exception in exceptions]
+            else:
+                log.debug(f'parsed data for `{fid}`')
+                continue
 
+            max_misses -= 1
 
-if __name__ == '__main__':
-    # test our routine with hardcoded values
+        else:
+            raise USDAFoodsError(f'>{max_misses} failures in USDA get_data')
 
-    # these are the hardcoded values
-    foods_of_interest = [
-        478743,
-        433603,
-        1102695,
-        169134,
-        1102757,
-        167787,
-        171909,
-        1104367,
-        170913,
-        173166,
-
-        # this should raise an exception
-        # 11111111111111111111111111111111111111111111111111111111,
-    ]
-    nutrients_of_interest = [
-        'Protein',
-        'Energy',
-
-        # this should raise an exception
-        # 'blah blah blah',
-    ]
-
-    # run function
-    get_food_nutrients(foods_of_interest, nutrients_of_interest)
+    log.info('Parsed USDA data')
+    return output

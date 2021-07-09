@@ -1,0 +1,1 @@
+Company confidential information is in this dir, so it is ignored by git

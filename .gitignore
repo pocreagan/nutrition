@@ -1,1 +1,5 @@
-.venv/
+/.idea/
+/dist/
+/build/
+/dev/
+/resources/dat/*.xlsx

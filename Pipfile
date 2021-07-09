@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests-toolbelt = "*"
+kivy = {extras = ["all"], version = "*"}
+pyyaml = ">5.4"
+pandas = "*"
+openpyxl = "*"
+kivymd = "*"
+
+[dev-packages]
+pyinstaller = "*"
+
+[requires]
+python_version = "3.7"
