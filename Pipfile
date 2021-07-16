@@ -4,15 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-requests-toolbelt = "*"
-kivy = {extras = ["all"], version = "*"}
-pyyaml = ">5.4"
-pandas = "*"
-openpyxl = "*"
-kivymd = "*"
+kivy = {extras = ["all"], version = "2.0.0"}
+pyyaml = "5.4.1"
+pandas = "1.3.0"
+openpyxl = "3.0.7"
+kivymd = "0.104.2"
+sqlalchemy = "1.4.21"
+xlsxwriter = "1.4.4"
 
 [dev-packages]
-pyinstaller = "*"
+pyinstaller = "4.3"
 
 [requires]
-python_version = "3.7"
+python_version = "3.7.9"

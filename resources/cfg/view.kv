@@ -1,204 +1,429 @@
 # kivy v2.0.0
 #:import utils kivy.utils
+#:import Window kivy.core.window.Window
+
 #:set herbalife_green utils.get_color_from_hex('#7BC143')
+#:set herbalife_dark_green utils.get_color_from_hex('#387C2B')
 #:set herbalife_orange utils.get_color_from_hex('#FAA634')
 #:set white utils.get_color_from_hex('#EAF2EF')
+#:set apple_green utils.get_color_from_hex('#ABD55A')
 #:set light_grey utils.get_color_from_hex('#D0CCD0')
 #:set medium_grey utils.get_color_from_hex('#ADA8B6')
+#:set medium_grey_transparent utils.get_color_from_hex('#ADA8B633')
+
 #:set dark_grey utils.get_color_from_hex('#2C302E')
 #:set transparent [0, 0, 0, 0]
 
+#:set food_source_colors {'USDA': light_grey, 'HN': herbalife_green}
 
-<CustomSnackbar>
+
+<CheckMark>:
+    size_hint: (None, None)
+    size: ("26dp", "26dp")
+    Image:
+        source: 'white_checkmark.png'
+
+
+<RegionChip>
+    check_box_div: check_box_div
+
+    selected: False
+    selected_color: herbalife_dark_green
+    default_color: light_grey
+    region_name: 'region_name'
+    color: self.default_color
+
+    size_hint: None,  None
+    height: "60dp"
+    padding: 0, 0, "14dp", 0
+    width: self.minimum_width
+
+    canvas:
+        Color:
+            rgba: self.color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(12),]
+
+    MDBoxLayout:
+        id: check_box_div
+        adaptive_size: True
+        pos_hint: {'center_y': .5}
+        padding: "12dp", 0, 0, 0
+
+
+    MDBoxLayout:
+        adaptive_width: True
+        padding: dp(15)
+
+        Label:
+            font_size: '24dp'
+            id: label
+            text: root.region_name
+            size_hint_x: None
+            width: self.texture_size[0]
+            color: [1, 1, 1, 1] if root.selected else [0, 0, 0, 1]
+
+<CustomSnackBar>
+    snackbar_x: '5dp'
+    snackbar_y: '5dp'
+    size_hint_x: (Window.width - (self.snackbar_x * 2)) / Window.width
+    size_hint_y: 90 / 800
+    bg_color: light_grey
     MDIconButton:
         pos_hint: {'center_y': .5}
         icon: root.icon
-        opposite_colors: True
+        opposite_colors: False
 
     MDLabel:
         id: text_bar
         size_hint_y: None
         height: self.texture_size[1]
         text: root.text
-        font_size: root.font_size
+        font_size: "24sp"
         theme_text_color: 'Custom'
-        text_color: get_color_from_hex('ffffff')
+        text_color: 'black'
         shorten: True
         shorten_from: 'right'
         pos_hint: {'center_y': .5}
 
 
+<USDASourceButton>
+    padding: '5dp', '5dp'
+    font_size: '20dp'
+    text: 'USDA'
+    canvas.before:
+        Color:
+            rgb: light_grey
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            radius: [dp(3),]
+
+
+<HerbalifeSourceButton>:
+    padding: '5dp', '5dp'
+    canvas.before:
+        Color:
+            rgb: herbalife_green
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            radius: [dp(3),]
+        Color:
+            rgb: 1, 1, 1, 1
+        RoundedRectangle:
+            size: self.size[0]-2, self.size[1] - 2
+            pos: self.pos[0]+1, self.pos[1] + 1
+            radius: [dp(3),]
+
+    Image:
+        pos_hint: {'x': .05, 'y': .05}
+        size_hint: [.9, .9]
+        source: 'hn-button_cropped.png'
+
+
 <FoodCard>:
-    size_y: 50
+    height: '80dp'
     size_hint: 1, None
     qty_field: qty_field
+    app: app
+    description_label: description_label
+    food_source_div: food_source_div
 
+    source: 'HN'
     food_id: 'Food ID'
     food_name: 'Food Name'
     food_qty: 'Food QTY'
     food_uom: 'Food UOM'
-    FloatLayout:
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size: root.size
+        pos: root.pos
+
         BoxLayout:
-            orientation: "vertical"
-            size: root.size
-            pos: root.pos
+            orientation: 'horizontal'
+            size_hint: .8, 1
             padding: '10dp'
             spacing: '10dp'
 
             BoxLayout:
-                orientation: 'horizontal'
-                size_hint: 1, None
-                height: 15
+                id: food_source_div
+                root: root
+                size_hint: .2, 1
+
+            BoxLayout:
+                # size_hint: .8, 1
+                orientation: 'vertical'
+
                 MDLabel:
-                    valign: 'bottom'
                     text: root.food_id
-                    size_hint: .4, None
                     font_size: '20dp'
-                    text_size: root.width * .4, None
-                    height: self.texture_size[1]
-                MDLabel:
-                    valign: 'bottom'
-                    text: root.QTY + root.UOM
-                    size_hint: .2, None
-                    font_size: '18dp'
-                    halign: 'center'
-                    text_size: root.width * .2, None
-                    height: self.texture_size[1]
-                MDLabel:
-                    valign: 'bottom'
-                    text: root.source
-                    size_hint: .2, None
-                    font_size: '18dp'
-                    halign: 'center'
-                    text_size: root.width * .2, None
-                    height: self.texture_size[1]
-                MDLabel:
-                    size_hint: .2, None
 
-            MDSeparator:
-                height: "1dp"
+                MDLabel:
+                    id: description_label
+                    font_size: '16dp'
+                    text: root.description
+                    shorten: True
+                    shorten_from: 'right'
 
-            MDLabel:
-                size_hint_x: .8
-                text: root.description
-
-            MDLabel:
-                size_hint_x: .2
+                MDLabel:
+                    font_size: '18sp'
+                    text: str(round(root.QTY)) + ' ' + root.UOM
 
         BoxLayout:
             orientation: 'vertical'
-            pos_hint: {'x': .80, 'y': .0}
-            size_hint: .2, 1.
-            padding: ['10dp',0]
-            MDLabel:
-                size_hint_y: .5
+            size_hint: .175, 1
+
             FoodQTYField:
                 id: qty_field
                 app: app
                 root: root
-                size_hint_y: .5
                 text: '1.0'
+                hint_text: ''
+                font_size: '26sp'
                 multiline: False
-                hint_text: 'QTY'
+                selection_color: medium_grey_transparent
+                helper_text_mode: 'persistent'
+                helper_text: '      SERVINGS'
 
-        MDIconButton:
-            pos_hint: {'x': .93, 'y': .6}
-            icon: 'close-circle'
-            user_font_size: "22sp"
-            on_press: app.remove_from_stack(root)
+            MDLabel:
+                text: ''
+                size_hint: None, .2
+
+        MDLabel:
+            text: ''
+            size_hint: .025, 1
 
 
-<TopBar@FitImage>:
-    source: app.logo_source
-    background_color: 1, 1, 1, 1
+<ControlButtons@BoxLayout>:
+    orientation: 'vertical'
+    spacing: '5dp'
+
+    MDRoundFlatButton:
+        text: 'Clear'
+        size_hint_x: 1
+        on_press: app.clear_food_cards()
+
+    MDFillRoundFlatButton:
+        text: 'Proceed'
+        size_hint_x: 1
+        on_press: app.proceed_to_region_selection_screen()
 
 <LoadingScreen>:
-    MDSpinner:
-        size_hint: [.4, .4]
-        color: herbalife_green
-        pos_hint: {'center_x': .5, 'center_y': .5}
-        active: app.is_loading
+    label_text: 'loading...'
+    is_good: True
+    is_loading: True
+    BoxLayout:
+        orientation: 'vertical'
 
-    Label:
-        id: label
-        font_size: dp(24)
-        text: 'loading...'
-        valign: 'center'
-        halign: 'center'
-        text_size: self.size
-        size_hint: [.6, .6]
-        color: herbalife_green if app.is_processing else herbalife_orange
-        pos_hint: {'center_x': .5, 'center_y': .5}
-        active: app.is_loading
-        background_color: transparent
+        FloatLayout:
+            MDSpinner:
+                size_hint: [.4, .4]
+                color: herbalife_green
+                pos_hint: {'center_x': .5, 'center_y': .5}
+                active: root.is_loading
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint: [.6, .6]
+                pos_hint: {'center_x': .5, 'center_y': .5}
+                Label:
+                    font_size: dp(24)
+                    text: root.label_text
+                    valign: 'center'
+                    halign: 'center'
+                    color: herbalife_green if root.is_good else herbalife_orange
+                    background_color: transparent
+
+<FoodIDInputField@MDTextField>:
+    font_size: '30dp'
+    multiline: False
+    hint_text: 'Food ID'
+    on_text_validate: app.add_food(self.text)
+    selection_color: medium_grey_transparent
+
+
+<BottomBarLayout@BoxLayout>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    size_y: 110
+    padding: dp(10)
+    spacing: dp(20)
+
+
+<BottomBarSeparator@MDSeparator>:
+    height: "4dp"
+
+<EmptyStackScreen>:
+    input_field: input_field
+    BoxLayout:
+        orientation: 'vertical'
+        background_color: light_grey
+
+        Label:
+            text: 'Added foods will be displayed here.\n\nEnter a food ID below to add it to the stack.'
+            font_size: dp(24)
+            valign: 'center'
+            halign: 'center'
+            color: dark_grey
+            background_color: transparent
+
+        BottomBarSeparator:
+
+        BottomBarLayout:
+
+            FoodIDInputField:
+                id: input_field
+
+<PopulatedStackScreen>:
+    input_field: input_field
+    food_scroll_view: food_scroll_view
+    food_stack_layout: food_stack_layout
+
+    GridLayout:
+        cols: 1
+        background_color: light_grey
+
+        ScrollView:
+            id: food_scroll_view
+            do_scroll_x: False
+            do_scroll_y: True
+            size_hint: 1, .8
+
+            BoxLayout:
+                orientation: 'vertical'
+                id: food_stack_layout
+                padding: '10dp'
+                spacing: '10dp'
+                size_hint: 1, None
+                height: self.minimum_height
+
+        BottomBarSeparator:
+
+        BottomBarLayout:
+
+            FoodIDInputField:
+                id: input_field
+                size_hint: .8, 1
+
+            ControlButtons:
+                size_hint: .2, 1
+
+
+
+<RegionChip@MDChip>:
+    selected: False
+    _unselected_color: light_grey
+    icon: ''
+    color: light_grey
+    text_color: 'white' if self.selected else 'black'
+    check: True
+    radius: [dp(12)]
+    selected_chip_color: herbalife_dark_green
+
+
+<AnalysisScreen>:
+    app: app
+    snack_button_background_color: light_grey
+    chip_stack: chip_stack
+    submit_instruction: submit_instruction
+
+    BoxLayout:
+        orientation: 'vertical'
+        StackLayout:
+            padding: '15dp'
+            spacing: '15dp'
+            root: root
+            size_hint: 1, 1
+            id: chip_stack
+
+    BottomBarLayout:
+        canvas.before:
+            Color:
+                rgb: 1, 1, 1
+            Rectangle:
+                size: self.size
+                pos: self.pos
+
+        BoxLayout:
+            orientation: 'horizontal'
+            BoxLayout:
+                size_hint: .2, 1
+
+            BoxLayout:
+                size_hint: .6, 1
+                orientation: 'vertical'
+                padding: '5dp'
+
+                BoxLayout:
+                    size_hint: 1, .1
+
+                SubmitInstruction:
+                    id: submit_instruction
+                    root: root
+
+                    size_hint: 1, .8
+                    canvas.before:
+                        Color:
+                            rgb: apple_green if root.selection_made else medium_grey
+                        RoundedRectangle:
+                            size: self.size
+                            pos: self.pos
+                            radius: [self.size[1] / 2]
+
+                    valign: 'center'
+                    font_size: '28dp'
+                    halign: 'center'
+                    text: 'Analyze'
+                    theme_text_color: 'Custom'
+                    text_color: 'black'
+
+                BoxLayout:
+                    size_hint: 1, .1
+
+            BoxLayout:
+                size_hint: .2, 1
+
+#        FloatLayout:
+#            MDLabel:
+#                id: submit_instruction
+#
+#                canvas.before:
+#                    Color:
+#                        rgb: apple_green if root.selection_made else [1, 1, 1]
+#                    RoundedRectangle:
+#                        size: self.size
+#                        pos: self.pos
+#                        radius: [dp(30),]
+#
+#                size_hint_x: None
+#                pos_hint: {'x': .5, 'y': .5}
+#                width: self.texture_size[0]
+#                halign: 'center'
+#                text: 'Analyze' if root.selection_made else 'Select one or more regions to proceed'
+#                font_size: '28sp' if root.selection_made else '24sp'
+#                theme_text_color: 'Custom'
+#                text_color: 'black'
+
 
 <RootWidget>:
     orientation: 'vertical'
 
-    food_fields: food_fields
-    food_id_input_field: food_id_input_field
-    loading_screen: loading_screen
-    running_screen: running_screen
-    no_foods_yet_label: no_foods_yet_label
-    food_list_field: food_list_field
-    spacing: '15dp'
+    bottom_bar: bottom_bar
 
     TopBar:
         size_hint: 1, .2
 
-    LoadingScreen:
-        id: loading_screen
-        size_hint_y: .8
+    MDSeparator:
+        height: "2dp"
 
     BoxLayout:
-        id: running_screen
-        size_hint_y: .8
+        id: bottom_bar
         orientation: 'vertical'
-        background_color: light_grey
-        spacing: '15dp'
-
-        Label:
-            id: no_foods_yet_label
-            text: 'added foods will be displayed here'
-            size_hint: 1, 1
-            font_size: dp(24)
-            valign: 'center'
-            halign: 'center'
-            text_size: self.size
-            color: dark_grey
-            background_color: transparent
-
-        ScrollView:
-            id: food_list_field
-            do_scroll_x: False
-            do_scroll_y: True
-            size_hint_y: 1
-
-            BoxLayout:
-                id: food_fields
-                padding: '5dp'
-                spacing: '5dp'
-                orientation: 'vertical'
-                size_hint: 1, None
-                height: self.minimum_height
-
-        BoxLayout:
-            orientation: 'horizontal'
-            size_y: 50
-            size_hint_y: None
-            padding: dp(10)
-            spacing: dp(10)
-
-            MDTextField:
-                id: food_id_input_field
-                font_size: '36dp'
-                multiline: False
-                hint_text: 'Food ID'
-                on_text_validate: app.add_food(self.text)
-
-            MDFillRoundFlatButton:
-                text: 'Analyze'
-                on_press: app.analyze()
+        size_hint: 1, .8
 
 
 RootWidget:

@@ -1,3 +1,4 @@
+import random
 from typing import *
 
 from requests_toolbelt import threaded
@@ -68,7 +69,7 @@ def parse_response(http_response, nutrients: List[str], output: Dict) -> int:
 
     parsed_output = dict(
         food_id=fid,
-        source='USDA',
+        source='USDA' if not random.randint(0, 2) else 'Herbalife',  # TODO: remove this
         description=description,
     )
 

@@ -25,7 +25,9 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=False,
-          console=True , icon='..\\resources\\img\\apple-fruit-icon.ico')
+          console=True ,
+          icon='..\\resources\\img\\android-chrome-512x512.ico',
+          )
 
 from kivy_deps import sdl2, glew
 

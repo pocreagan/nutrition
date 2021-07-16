@@ -36,4 +36,6 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False )
+          console=False,
+          icon='..\\resources\\img\\android-chrome-512x512.ico'
+          )

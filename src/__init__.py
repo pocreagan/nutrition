@@ -49,4 +49,5 @@ os.environ["KIVY_NO_FILELOG"] = "1"
 os.environ["KIVY_NO_ARGS"] = "1"
 resource_add_path(__RESOURCE__.img())
 Config.read(__RESOURCE__.cfg('kivy_config.ini'))
-Config.set('kivy', 'window_icon', __RESOURCE__.img('transparent_icon.ico'))
+Config.set('kivy', 'window_icon', __RESOURCE__.img('favicon_white.ico'))
+Config.write()
