@@ -14,7 +14,6 @@ __all__ = [
     'build_model',
 ]
 
-
 PICKLE_PATH = __RESOURCE__.dat('model_dump.p')
 
 
@@ -29,8 +28,8 @@ def build_model(logger: loggers.Logger, on_complete_f: Callable) -> None:
 
     log = logger.spawn('Model')
     import pandas as pd
-    from src.model import herbalife_foods
-    from src.model import usda_foods
+    from src.build import herbalife
+    from src.build import usda
     from src.model.config import Model
 
     def read_spreadsheet(args: Tuple[str, loggers.Logger]):
@@ -70,7 +69,7 @@ def build_model(logger: loggers.Logger, on_complete_f: Callable) -> None:
         model.limits_by_region.update(limits_by_region)
 
         # fetch latest data from the USDA API
-        usda_food_data = usda_foods.get_data(
+        usda_food_data = usda.get_data(
             usda_foods_of_interest, nutrients_of_interest, model.USDA_MISSES_MAX_QTY, log
         )
 
@@ -80,7 +79,7 @@ def build_model(logger: loggers.Logger, on_complete_f: Callable) -> None:
 
         model.foods = usda_food_data
         # get data from the Herbalife Agile spreadsheet
-        model.foods.update(herbalife_foods.get_data(hl_foods_df, nutrient_aliases_df, log))
+        model.foods.update(herbalife.get_data(hl_foods_df, nutrient_aliases_df, log))
 
         with open(PICKLE_PATH, 'wb') as pf:
             pickle.dump(model, pf)
@@ -95,11 +94,15 @@ def build_model(logger: loggers.Logger, on_complete_f: Callable) -> None:
 if __name__ == '__main__':
     log = loggers.Logger('Model', Logger)
 
+    # def callback(return_value):
+    #     if isinstance(return_value, Exception):
+    #         raise return_value
+    #     log.info(return_value)
+    #
+    #
+    # build_model(log, callback)
 
-    def callback(return_value):
-        if isinstance(return_value, Exception):
-            raise return_value
-        log.info(return_value)
+    from src.model import Database, db
 
-
-    build_model(log, callback)
+    session_manager = Database(db.Schema, "sqlite:///c:/projects/nutrition/dev/db/test.db") \
+        .connect(log, True, True)

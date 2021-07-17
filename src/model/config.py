@@ -8,7 +8,6 @@ __all__ = [
 ]
 
 
-
 @dataclass
 class Model:
     USDA_MISSES_MAX_QTY: int

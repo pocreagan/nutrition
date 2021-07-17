@@ -1,13 +1,12 @@
 import logging
 import logging.handlers
+import sys
+
+from typing import Dict
 
 __all__ = [
     'Logger',
 ]
-
-import sys
-
-from typing import Dict
 
 _trace = getattr(logging, 'TRACE', 9)
 
@@ -18,12 +17,14 @@ class Logger:
         self.message_start = f'{category[:12] if len(category) > 12 else category}: '
         if logger:
             self.logger = logger
-        else:
+        elif q is not None:
             self.logger = logging.getLogger(__name__)
             ch = logging.handlers.QueueHandler(q)
             ch.setLevel(_trace)
             self.logger.addHandler(ch)
             self.logger.setLevel(_trace)
+        else:
+            raise TypeError('must provide @logger or @q')
 
     @staticmethod
     def _check_exc_info(exc_info: bool, kwargs: Dict) -> Dict:

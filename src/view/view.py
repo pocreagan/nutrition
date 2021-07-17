@@ -17,7 +17,6 @@ from kivy.properties import StringProperty
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import NoTransition
 from kivy.uix.screenmanager import Screen
@@ -27,10 +26,10 @@ from kivy.uix.stacklayout import StackLayout
 from kivy.utils import get_color_from_hex
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDRoundFlatButton
 from kivymd.uix.card import MDCard
-from kivymd.uix.label import MDIcon
 from kivymd.uix.label import MDLabel
+
+# noinspection PyProtectedMember
 from kivymd.uix.snackbar import BaseSnackbar
 from kivymd.uix.textfield import MDTextField
 from kivymd.utils.fitimage import FitImage
@@ -38,15 +37,11 @@ from kivymd.utils.fitimage import FitImage
 from src import __RESOURCE__
 from src.base import loggers
 from src.model.config import Model
-from src.view.palatte import *
+from src.view.palette import *
 
 __all__ = [
     'View',
 ]
-
-from src.view.utils import hide
-
-from src.view.utils import show
 
 log = loggers.Logger('View', Logger)
 
@@ -241,6 +236,7 @@ class RegionChip(ButtonBehavior, BoxLayout):
         ).start(self)
 
 
+# noinspection PyAbstractClass
 class SubmitInstruction(ButtonBehavior, MDLabel):
     root: 'AnalysisScreen' = ObjectProperty(None)
 
@@ -304,7 +300,7 @@ class View(MDApp):
     def start_model_building(self) -> None:
         log.debug('Starting model building thread')
 
-        from src.model.model import build_model
+        from src.build.__main__ import build_model
         from threading import Thread
 
         Thread(
