@@ -1,7 +1,7 @@
+import datetime
 from typing import Dict
 from typing import List
 from typing import Set
-from typing import Union
 
 from kivy import Logger
 from kivy.animation import Animation
@@ -11,7 +11,6 @@ from kivy.input import MotionEvent
 from kivy.lang import Builder
 from kivy.properties import BooleanProperty
 from kivy.properties import ColorProperty
-from kivy.properties import NumericProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.uix.behaviors import ButtonBehavior
@@ -28,15 +27,18 @@ from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
-
 # noinspection PyProtectedMember
 from kivymd.uix.snackbar import BaseSnackbar
 from kivymd.uix.textfield import MDTextField
 from kivymd.utils.fitimage import FitImage
 
 from src import __RESOURCE__
+from src import model
 from src.base import loggers
+from src.controller import spreadsheet_out
+from src.model import db
 from src.model.config import Model
+from src.model.enums import FoodSource
 from src.view.palette import *
 
 __all__ = [
@@ -123,9 +125,8 @@ class FoodQTYField(MDTextField):
 class FoodCard(MDCard):
     food_id = StringProperty('Food ID')
     description = StringProperty('Food Description')
-    QTY = NumericProperty(1.0)
-    UOM = StringProperty('Food UOM')
-    source = StringProperty('Food Source')
+    serving_size = StringProperty('Serving Size')
+    source: FoodSource = ObjectProperty(None)
     first = True
 
     app: 'View' = ObjectProperty(None)
@@ -148,9 +149,9 @@ class FoodCard(MDCard):
 
     @mainthread
     def add_logo(self) -> None:
-        if self.source == 'USDA':
+        if self.source == FoodSource.USDA:
             self.food_source_div.add_widget(USDASourceButton())
-        elif self.source == 'Herbalife':
+        elif self.source == FoodSource.HLF:
             self.food_source_div.add_widget(HerbalifeSourceButton())
 
     def shrink(self, *_) -> None:
@@ -259,10 +260,10 @@ class AnalysisScreen(Screen):
 
     def begin_analysis(self) -> None:
         log.info(f'Beginning analysis')
-        self.app.close_app()
+        self.app.begin_analysis(self.selected_regions)
 
     def on_enter(self, *args):
-        self.regions_to_be_added = list(self.app.model.limits_by_region.keys())
+        self.regions_to_be_added = list(self.app.regions_d.keys())
         self.selected_regions = set()
         Clock.schedule_interval(self.add_chip, self.chip_interval)
 
@@ -293,47 +294,17 @@ class View(MDApp):
 
     def __init__(self, **kwargs) -> None:
         kwargs['title'] = 'Sam'
-        self.stack: Dict[int, FoodCard] = dict()
+        self.stack: Dict[str, db.Food] = dict()
+        self.food_cards: Dict[str, FoodCard] = dict()
+        self.model = Model(**__RESOURCE__.cfg('app.yml', parse=True))
+        self.session_manager = model.Database(
+            db.Schema, f'sqlite:///{__RESOURCE__.db(self.model.CONNECTION_STRING_SUFFIX)}'
+        ).connect(log.spawn('Database'))
+        with self.session_manager() as session:
+            self.regions_d: Dict[str, db.Region] = db.Region.all(session)
         super().__init__(**kwargs)
 
-    @mainthread
-    def start_model_building(self) -> None:
-        log.debug('Starting model building thread')
-
-        from src.build.__main__ import build_model
-        from threading import Thread
-
-        Thread(
-            target=build_model, name='ModelBuilderThread', args=(log, self.add_model,), daemon=True,
-        ).start()
-
-    @mainthread
-    def add_model(self, model: Union[Exception, Model]) -> None:
-        if isinstance(model, Exception):
-            log.error(f'Model building failed. <{type(model).__name__}({str(model)})>', exc_info=False)
-            self.loading_screen.set('failed to load food data\nplease seek technical support', False, False)
-
-        else:
-            log.info('Received built model')
-            self.model = model
-
-            def fake_add_stack_callback(*_):
-                list(map(self.add_food, {
-                    '174832', '1529369', '1473411',
-                    '1660854', '1737794', '170173',
-                    '173933', '174292', '173946',
-                }))
-
-            Clock.schedule_once(fake_add_stack_callback, .5)
-
-            @mainthread
-            def callback():
-                self.screen_manager.current = 'empty_stack'
-
-            callback()
-
     def build(self):
-        self.start_model_building()
         self.theme_cls.colors = THEME
         self.theme_cls.primary_palette = PRIMARY_PALETTE
         self.theme_cls.accent_palette = 'Orange'
@@ -357,7 +328,7 @@ class View(MDApp):
         self.root.bottom_bar.add_widget(self.screen_manager)
 
         self.screen_manager.current = 'populated_stack'
-        self.screen_manager.current = 'loading'
+        self.screen_manager.current = 'empty_stack'
 
         return self.root
 
@@ -377,34 +348,34 @@ class View(MDApp):
         if is_tail_recursion and value is not None:
             raise TypeError
 
-        text = value if value is not None else multiple_values.pop()  # type: ignore
+        food_id = (value if value is not None else multiple_values.pop()).upper().strip()  # type: ignore
 
-        if not text:
+        if not food_id:
             return
 
-        try:
-            food_id = int(text)
-            food = self.model.foods.get(food_id, None)
-            if food is None:
-                raise ValueError
-
-        except (TypeError, ValueError):
-            self.clear_field(do_clear_text=False)
-            return self.warning_snack_bar(f'Food ID `{text}` was not found')
-
         if food_id in self.stack:
-            scroll_to_widget = self.stack[food_id]
+            scroll_to_widget = self.food_cards[food_id]
             if not is_tail_recursion:
                 self.warning_snack_bar(f'Food ID {food_id} is already in the stack')
 
         else:
+            try:
+                with self.session_manager() as session:
+                    food = db.Food.get(session, food_id)
+                if food is None:
+                    raise ValueError
+
+            except (TypeError, ValueError):
+                self.clear_field(do_clear_text=False)
+                return self.warning_snack_bar(f'Food ID `{food_id}` was not found')
+
             food_card = FoodCard()
-            food_card.food_id = str(food_id)
-            food_card.description = ' '.join([food['description']] * 4)
-            food_card.QTY = float(food['QTY'])
-            food_card.UOM = food['UOM']
-            food_card.source = food["source"]
-            self.stack[food_id] = food_card
+            food_card.food_id = food_id
+            food_card.description = food.description
+            food_card.serving_size = food.qty_per_serving
+            food_card.source = food.source
+            self.stack[food_id] = food
+            self.food_cards[food_id] = food_card
             self.food_stack_layout.add_widget(food_card)
             scroll_to_widget = food_card
 
@@ -437,13 +408,14 @@ class View(MDApp):
 
     def clear_food_cards(self) -> None:
         log.info('clear_food_cards button pressed')
-        self.remove_from_stack(*self.stack.values())
+        self.remove_from_stack(*self.food_cards.values())
 
     @mainthread
     def remove_from_stack(self, *food_cards: FoodCard) -> None:
         for food_card in food_cards:
             food_id = food_card.food_id
-            del self.stack[int(food_id)]
+            del self.stack[food_id]
+            del self.food_cards[food_id]
 
             self.food_stack_layout.remove_widget(food_card)
             log.info(f'Removed food `{food_card.food_id}` from stack')
@@ -453,6 +425,17 @@ class View(MDApp):
 
         self.clear_field()
         self.recalculate_scroll_view()
+
+    def begin_analysis(self, regions: Set[str]) -> None:
+        with self.session_manager() as session:
+            spreadsheet_out.make(
+                db.Stack.from_gui(
+                    session, [self.regions_d[r] for r in regions], list(self.stack.values()),
+                    {k: v.validated_qty for k, v in self.food_cards.items()},
+                ).for_spreadsheet(self.model.APP_VERSION),
+                f'Sam-{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            )
+        self.close_app()
 
     @mainthread
     def close_app(self) -> None:

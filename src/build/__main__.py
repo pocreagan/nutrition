@@ -1,108 +1,79 @@
-import pathlib
-import pickle
 import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Callable
-from typing import Tuple
 
-from kivy import Logger
+import click
 
 from src import __RESOURCE__
 from src.base import loggers
+from src.build.exceptions import PackageFailure
+from src.build.exceptions import ParseFailure
+from src.build.package import package
+from src.build.parse import Parser
 
-__all__ = [
-    'build_model',
-]
+__all__ = []
 
-PICKLE_PATH = __RESOURCE__.dat('model_dump.p')
+BUILD_DIR = __RESOURCE__.PROJECT_ROOT / 'build'
+
+# noinspection SpellCheckingInspection
+API_KEY = r'IAq4gn3KahA24GAAeEOZLNO6ghwzTWWtU7awLFw5'
+USDA_URL = f'https://api.nal.usda.gov/fdc/v1/foods/search?api_key={API_KEY}'
+CONN_STRING = 'sqlite:///' + __RESOURCE__.db('backend.db')
+DIST_PATH = __RESOURCE__.PROJECT_ROOT / 'dist'
+DAT_PATH = __RESOURCE__.PROJECT_ROOT / 'dat'
+
+SPEC_CHANGES = {
+    '__ICON_PATH__': __RESOURCE__.img('android-chrome-512x512_trans.ico'),
+    '__ENTRY_POINT__': __RESOURCE__.PROJECT_ROOT / 'src' / 'app.py',
+    '__ROOT_DIR__': __RESOURCE__.PROJECT_ROOT, '__DIST_PATH__': DIST_PATH,
+    '__DAT_PATH__': __RESOURCE__.PROJECT_ROOT / 'build', '__APP_NAME__': 'Sam',
+}
 
 
-def build_model(logger: loggers.Logger, on_complete_f: Callable) -> None:
+@click.command()
+@click.option('--debug', is_flag=True)
+@click.option('--release', is_flag=True)
+def main(debug: bool, release: bool) -> None:
+    import kivy
+    log = loggers.Logger('Build', kivy.Logger)
+
     ti = time.perf_counter()
-
-    if pathlib.Path(PICKLE_PATH).exists():
-        with open(PICKLE_PATH, 'rb') as pf:
-            model = pickle.load(pf)
-            on_complete_f(model)
-            return
-
-    log = logger.spawn('Model')
-    import pandas as pd
-    from src.build import herbalife
-    from src.build import usda
-    from src.model.config import Model
-
-    def read_spreadsheet(args: Tuple[str, loggers.Logger]):
-        name, logger = args
-        file_name = f'{name}.xlsx'
-
-        logger.info(f'Loading `{file_name}`...')
-        df = pd.read_excel(__RESOURCE__.dat(file_name), sheet_name=None)
-        if len(df) == 1:
-            for sheet_name, df in df.items():
-                break
-
-        logger.info(f'Loaded `{file_name}`.')
-        return df
-
+    log.info('Initiating parse...')
+    # noinspection PyBroadException
     try:
-        # load app configuration file into app's Model object
-        model = Model(**__RESOURCE__.cfg('app.yml', parse=True))
-        log.info('Read `app.yml`.')
+        Parser(log).run(DAT_PATH / 'Data.xlsx',
+                        DAT_PATH / 'Agile.xlsx',
+                        USDA_URL, CONN_STRING, )
+        log.info('Parse successful' + '\n\n\n')
 
-        # loading spreadsheets into memory takes forever, so we do them concurrently
-        sheet_filenames = (
-            'USDA_Foods', 'USDA_Nutrients', 'HLF_Foods',
-            'Nutrient_Aliases', 'UOM_Aliases', 'Limits_by_Region'
-        )
-        with ThreadPoolExecutor() as executor:
-            dataframes: Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame] = executor.map(  # type: ignore
-                read_spreadsheet, [(name, log) for name in sheet_filenames]
-            )
+        if debug or release:
+            package(log, debug, release, SPEC_CHANGES)
+            log.info('Packaging successful')
 
-        usda_food_df, usda_nutrient_df, hl_foods_df, *rest = dataframes
-        nutrient_aliases_df, uom_aliases, limits_by_region = rest
+        else:
+            log.warning('Packaging was not requested')
 
-        # extract needed data from the USDA config spreadsheets
-        usda_foods_of_interest = usda_food_df['FoodID'].to_list()
-        nutrients_of_interest = usda_nutrient_df['Nutrient'].to_list()
-        model.limits_by_region.update(limits_by_region)
+    except ParseFailure:
+        log.error('Data validation failed - build aborted')
+        exit(1)
 
-        # fetch latest data from the USDA API
-        usda_food_data = usda.get_data(
-            usda_foods_of_interest, nutrients_of_interest, model.USDA_MISSES_MAX_QTY, log
-        )
+    except PackageFailure as e:
+        log.error(f'Packaging failed')
+        try:
+            exit(int(str(e)))
+        except ValueError:
+            exit(1)
 
-        for food_id, food in usda_food_data.items():
-            for k in ('UOM', 'QTY'):
-                food[k] = usda_food_df.loc[usda_food_df.FoodID == food_id, k].values[0]
+    except Exception:
+        log.error(f'Build failed', exc_info=True)
+        exit(1)
 
-        model.foods = usda_food_data
-        # get data from the Herbalife Agile spreadsheet
-        model.foods.update(herbalife.get_data(hl_foods_df, nutrient_aliases_df, log))
+    if release:
+        log.error('No release action at this time', exc_info=False)
 
-        with open(PICKLE_PATH, 'wb') as pf:
-            pickle.dump(model, pf)
+    else:
+        log.warning('Release was not requested')
 
-        log.info(f'Built model in {time.perf_counter() - ti: .3f}s')
-        on_complete_f(model)
-
-    except Exception as e:
-        on_complete_f(e)
+    log.info(f'Exiting after {loggers.format_time(time.perf_counter() - ti)}')
 
 
 if __name__ == '__main__':
-    log = loggers.Logger('Model', Logger)
-
-    # def callback(return_value):
-    #     if isinstance(return_value, Exception):
-    #         raise return_value
-    #     log.info(return_value)
-    #
-    #
-    # build_model(log, callback)
-
-    from src.model import Database, db
-
-    session_manager = Database(db.Schema, "sqlite:///c:/projects/nutrition/dev/db/test.db") \
-        .connect(log, True, True)
+    main()

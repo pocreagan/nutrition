@@ -48,18 +48,16 @@ class Food:
     description: str
     num_servings: float
     qty_per_serving: Optional[str]
+    nut_float: List[float]
+    nut_display: List[Union[str, float]]
 
 
 @dataclass
 class Nutrient:
     name: str
-    limit: Union[NutrientLimitType, float]
+    display_values: List[Union[float, str]]
     amounts: List[float]
-
-    def __post_init__(self) -> None:
-        if isinstance(self.limit, NutrientLimitType):
-            return
-        self.limit = float(self.limit)
+    limit: Union[NutrientLimitType, float]
 
     @property
     def is_limited(self) -> bool:
@@ -72,7 +70,7 @@ class Nutrient:
     @property
     def percent_of_limit(self) -> float:
         if self.is_limited:
-            return 100 * (self.sum / self.limit)
+            return self.sum / self.limit
 
     @property
     def exceeds_guidance_level(self) -> bool:

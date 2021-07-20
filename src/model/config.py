@@ -1,7 +1,5 @@
-from dataclasses import dataclass, field
-from typing import Any
-from typing import Dict
-from typing import List
+import datetime
+from dataclasses import dataclass
 
 __all__ = [
     'Model',
@@ -10,9 +8,10 @@ __all__ = [
 
 @dataclass
 class Model:
-    USDA_MISSES_MAX_QTY: int
-    PERCENT_OF_DAILY_SAFE: float
-    USDA_foods_of_interest: List[int] = field(default_factory=list, repr=False)
-    nutrients_of_interest: List[str] = field(default_factory=list, repr=False)
-    limits_by_region: Dict[str, Any] = field(default_factory=dict, repr=False)
-    foods: Dict = field(default_factory=dict, repr=False)
+    USDA_API_KEY: str
+    USDA_REST_ENDPOINT: str
+    AGILE_FILE_PATH: str
+    DATA_FILE_PATH: str
+    CONNECTION_STRING_SUFFIX: str
+    BUILD_VERSION: datetime.datetime = datetime.datetime.now()
+    APP_VERSION: datetime.datetime = datetime.datetime.now()

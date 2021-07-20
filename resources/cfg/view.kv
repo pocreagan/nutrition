@@ -136,7 +136,6 @@
     food_id: 'Food ID'
     food_name: 'Food Name'
     food_qty: 'Food QTY'
-    food_uom: 'Food UOM'
 
     BoxLayout:
         orientation: 'horizontal'
@@ -171,7 +170,7 @@
 
                 MDLabel:
                     font_size: '18sp'
-                    text: str(round(root.QTY)) + ' ' + root.UOM
+                    text: root.serving_size
 
         BoxLayout:
             orientation: 'vertical'

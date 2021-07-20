@@ -11,6 +11,12 @@ openpyxl = "3.0.7"
 kivymd = "0.104.2"
 sqlalchemy = "1.4.21"
 xlsxwriter = "1.4.4"
+requests = "*"
+requests-toolbelt = "*"
+funcy = "*"
+pyinstaller = "==4.4"
+click = "*"
+xlsx2csv = "*"
 
 [dev-packages]
 pyinstaller = "4.3"

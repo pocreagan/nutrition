@@ -20,24 +20,34 @@ SUMMARY_RESULT_STRINGS = {
     False: 'OK'
 }
 
-SUMMARY_COL_WIDTHS = [
-    (1, 1, 140),
-    (2, 3, 230),
-    (4, 50, 96),
+SUMMARY_COL_WIDTHS_CHAR = [
+    (0, 2.),
+    (1, 12.),
+    (2, 20.),
+    (3, 15.),
+    (4, 10.),
 ]
 
-SUMMARY_ROW_HEIGHTS = []
+for i in range(5, 50):
+    SUMMARY_COL_WIDTHS_CHAR.append((i, 10.))
 
-REGION_COL_WIDTHS = [
-    (1, 1, 152),
-    (2, 2, 345),
-    (3, 100, 68),
+SUMMARY_ROW_HEIGHTS_CHAR = [
+    (0, 14.)
 ]
 
-REGION_ROW_HEIGHTS = [
-    (1, 62),
-    (2, 62),
-    (7, 184),
+REGION_COL_WIDTHS_CHAR = [
+    (0, 2.),
+    (1, 14.),
+    (2, 24.),
+]
+for i in range(3, 100):
+    REGION_COL_WIDTHS_CHAR.append((i, 6.))
+
+REGION_ROW_HEIGHTS_CHAR = [
+    (0, 14.),
+    (1, 31.),
+    (2, 31.),
+    (7, 83.),
 ]
 
 

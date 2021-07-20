@@ -177,7 +177,7 @@ class JSONEncodedDict(sa.TypeDecorator):
     def process_bind_param(self, value, dialect):
         if isinstance(value, str):
             raise ValueError(f'{type(self).__name__} columns must be set with py objects')
-        return '{}' if not value else json.dumps(value)
+        return json.dumps(value) if value else '{}'
 
     def process_result_value(self, value, dialect):
-        return {} if not value else json.loads(value)
+        return json.loads(value) if value else {}

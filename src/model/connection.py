@@ -60,20 +60,20 @@ class Database:
         _connection = self.schema.connection_name
 
         engine = sa.create_engine(self.conn_string, echo=echo_sql)
-        logger.info(f'engine created for {self.conn_string}')
+        logger.debug(f'Created engine')
 
         session_constructor: Callable[[], Session_t] = sessionmaker(bind=engine, class_=Session_t)
-        logger.debug(f'built session constructor for {self.conn_string}')
+        logger.debug(f'Bound session constructor')
 
         if drop_tables:
-            if input('ARE YOU SURE YOU WANT TO DROP TABLES? -> ').lower() != 'yes':
-                exit(1)
+            # if input('ARE YOU SURE YOU WANT TO DROP TABLES? -> ').lower() != 'yes':
+            #     exit(1)
 
             self.metadata.drop_all(engine)
-            logger.warning(f'dropped {_connection} tables')
+            logger.warning(f'Dropped tables')
 
         self.metadata.create_all(engine)
-        logger.info(f'mapped {_connection} schema')
+        logger.debug(f'Mapped schema')
 
         @contextmanager
         def session_manager_f(expire: bool = False) -> ContextManager[Session_t]:

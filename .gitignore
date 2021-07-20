@@ -2,4 +2,5 @@
 /dist/
 /build/
 /dev/
-/resources/dat/*.xlsx
+/resources/db/
+/src/_notebook/

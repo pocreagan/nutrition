@@ -1,1 +1,0 @@
-Company confidential information is in this dir, so it is not version controlled
