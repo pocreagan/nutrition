@@ -65,7 +65,7 @@ class Region(Schema):
     @property
     def limits_display(self) -> List[Union[NutrientLimitType, float]]:
         return [
-            v if v > 0. else NutrientLimitType['ND' if v == 1. else 'NL'] for v in self._nutrient_data.data.values()
+            v if v > 0. else NutrientLimitType['ND' if v == -1. else 'NL'] for v in self.limits.values()
         ]
 
     @classmethod

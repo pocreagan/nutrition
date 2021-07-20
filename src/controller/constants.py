@@ -10,10 +10,10 @@ GUIDANCE_LEVEL_EXCEEDED_HEADER_STRING = 'Guidance Level(s) Exceeded'
 SUMMARY_RESULT_HEADER = 'Result:'
 
 # noinspection SpellCheckingInspection
-SUMMARY_BLURB = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque eget ipsum non turpis scelerisque ' \
-                'consectetur. Donec tristique elit non magna semper, sed tincidunt nunc condimentum. Vivamus eu ' \
-                'volutpat sem. Cras scelerisque finibus nisi, id ultrices magna lacinia non. Proin id finibus ipsum, ' \
-                'vitae efficitur leo. Aliquam sit amet metus enim. '
+SUMMARY_BLURB = 'This analysis was performed using Agile data, tolerable upper intake limits and USDA food data ' \
+                'current as of the date listed above as the app version date. You are invited to review the exact ' \
+                'data used in the Sam project folder. If you encounter an error or an anomalous result, or want to ' \
+                'request additional foods be added to the USDA foods list, please contact Caroline Ingles. '
 
 SUMMARY_RESULT_STRINGS = {
     True: GUIDANCE_LEVEL_EXCEEDED_HEADER_STRING,
@@ -41,14 +41,15 @@ REGION_COL_WIDTHS_CHAR = [
     (2, 24.),
 ]
 for i in range(3, 100):
-    REGION_COL_WIDTHS_CHAR.append((i, 6.))
+    REGION_COL_WIDTHS_CHAR.append((i, 7.))
 
 REGION_ROW_HEIGHTS_CHAR = [
     (0, 14.),
     (1, 31.),
     (2, 31.),
-    (7, 83.),
 ]
+
+REGION_HEADER_ROW_HEIGHT = 83.
 
 
 class RegionWidths:

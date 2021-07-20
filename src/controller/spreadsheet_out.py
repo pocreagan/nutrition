@@ -15,6 +15,7 @@ from src.controller.constants import *
 from src.controller.objects import *
 from src.model import db
 from src.model.config import Model
+from src.model.enums import NutrientLimitType
 
 WORKSHEET_PROTECTION_PASSWORD = 'protected'
 
@@ -178,6 +179,9 @@ def start_sheet(wb: xlsxWorkbook, name: str,
 
 
 def make_region(wb: xlsxWorkbook, region: Region) -> None:
+    bad_nutrients = [nut for nut in region.nutrients if nut.exceeds_guidance_level]
+
+    # row_heights = REGION_ROW_HEIGHTS_CHAR + [(6 + min(1, len(bad_nutrients)), REGION_HEADER_ROW_HEIGHT)]
     ws = start_sheet(wb, region.name, REGION_COL_WIDTHS_CHAR, REGION_ROW_HEIGHTS_CHAR, 160)
 
     with Format.white_background():
@@ -193,7 +197,6 @@ def make_region(wb: xlsxWorkbook, region: Region) -> None:
         # write bad nutrients summary
         ws.merge_range(row, 1, row, 4, GUIDANCE_LEVEL_EXCEEDED_HEADER_STRING, Format().border_bottom()())
         row += 1
-        bad_nutrients = [nut for nut in region.nutrients if nut.exceeds_guidance_level]
         if bad_nutrients:
             for nut in bad_nutrients:
                 ws.merge_range(row, 1, row, 4, nut.name, Format().fail_fg()())
@@ -255,13 +258,22 @@ def make_region(wb: xlsxWorkbook, region: Region) -> None:
     ws.write_string(row + 2, 4, CalcHeaders.PERCENT_OF_LIMIT, Format().bold().right().border_right()())
 
     for i, nut in enumerate(region.nutrients):
+
         cells = [(Format(), nut.sum)]
         if nut.is_limited:
             cells.extend([(Format(), nut.limit), (Format().percentage(), nut.percent_of_limit)])
+        elif nut.limit == NutrientLimitType.ND:
+            cells.extend([(Format(), 'ND'), (Format(), '')])
+
         for j, (fmt, num) in enumerate(cells):
             if nut.exceeds_guidance_level:
                 fmt.fail_bg().bold()
-            ws.write_number(row + j, 5 + i, num, fmt())
+
+            if isinstance(num, str):
+                ws.write_string(row + j, 5 + i, num, fmt())
+
+            else:
+                ws.write_number(row + j, 5 + i, num, fmt())
 
 
 def make_summary(wb: xlsxWorkbook, output: Output) -> None:
@@ -290,9 +302,9 @@ def make_summary(wb: xlsxWorkbook, output: Output) -> None:
         row += 1
         fmt = Format().top()()
         fmt.set_text_wrap()
-        ws.merge_range(row, 1, row + 5, 3, SUMMARY_BLURB, fmt)
+        ws.merge_range(row, 1, row + 6, 3, SUMMARY_BLURB, fmt)
 
-        ws.conditional_format(1, 1, row + 5, 4, {'type': 'blanks', 'format': Format()()})
+        ws.conditional_format(1, 1, row + 6, 4, {'type': 'blanks', 'format': Format()()})
 
     ws.set_first_sheet()
 

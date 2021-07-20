@@ -460,6 +460,7 @@ class Parser:
                             record.set_id(pk, pk_nut)
 
                         last_pk_d[db.NutrientData] = records[-1]._nutrient_data.id
+                        session.bulk_save_objects([r._nutrient_data for r in records], return_defaults=False)
 
                     last_pk_d[cla] = records[-1].id
 

@@ -37,6 +37,7 @@ from src import model
 from src.base import loggers
 from src.controller import spreadsheet_out
 from src.model import db
+from src.model.config import Build
 from src.model.config import Model
 from src.model.enums import FoodSource
 from src.view.palette import *
@@ -297,6 +298,7 @@ class View(MDApp):
         self.stack: Dict[str, db.Food] = dict()
         self.food_cards: Dict[str, FoodCard] = dict()
         self.model = Model(**__RESOURCE__.cfg('app.yml', parse=True))
+        self.build_obj = Build(**__RESOURCE__.cfg('build.yml', parse=True))
         self.session_manager = model.Database(
             db.Schema, f'sqlite:///{__RESOURCE__.db(self.model.CONNECTION_STRING_SUFFIX)}'
         ).connect(log.spawn('Database'))
@@ -432,7 +434,7 @@ class View(MDApp):
                 db.Stack.from_gui(
                     session, [self.regions_d[r] for r in regions], list(self.stack.values()),
                     {k: v.validated_qty for k, v in self.food_cards.items()},
-                ).for_spreadsheet(self.model.APP_VERSION),
+                ).for_spreadsheet(self.build_obj.app_version),
                 f'Sam-{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}'
             )
         self.close_app()

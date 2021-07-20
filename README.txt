@@ -10,10 +10,9 @@
     Debug.spec
         build application as a directory
         console output
-        uncompressed
+        module imports logged by bootloader
     Release.spec
         build application as an executable
-        no console output
         compressed
 
 ./scripts contains Windows batch scripts which can be double-clicked

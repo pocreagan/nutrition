@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 
+import yaml
+
 from src import __RESOURCE__
 from src.base import loggers
 from src.build.exceptions import PackageFailure
@@ -27,10 +29,9 @@ def update_spec_file(spec_name: str, spec_data: Dict[str, Any]) -> None:
     for k, v in spec_data.items():
         spec_text = spec_text.replace(k, str(v))
 
-    if not SPEC_DIR.exists():
-        os.makedirs(SPEC_DIR)
+    os.makedirs(SPEC_DIR, exist_ok=True)
 
-    else:
+    if (SPEC_DIR / spec_name).exists():
         with open(SPEC_DIR / spec_name, 'r') as existing:
             if spec_text == existing.read():
                 return
@@ -80,7 +81,30 @@ def build(log: loggers.Logger, spec_data: Dict[str, Any], build_type: str, args:
     log.info(f'{build_type} build successful' + '\n\n\n')
 
 
+def update_build_config(log: loggers.Logger) -> None:
+    import datetime
+    import subprocess
+
+    log.info('Checking working tree...')
+    if subprocess.check_output("git diff --stat", shell=True).decode().strip() != '':
+        raise PackageFailure('DIRTY WORKING TREE. COMMIT CHANGES TO BUILD.')
+
+    log.info('Working tree clean')
+
+    log_data = dict(
+        commit=subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip(),
+        timestamp=datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+    )
+
+    with open(__RESOURCE__.cfg('build.yml'), 'w+') as wf:
+        yaml.dump(log_data)
+
+    log.info('Updated build log')
+
+
 def package(log: loggers.Logger, debug: bool, release: bool, spec_data: Dict[str, Any]) -> None:
+    update_build_config(log)
+
     if debug:
         # noinspection SpellCheckingInspection
         build(log, spec_data, 'Debug', '--noconfirm')
