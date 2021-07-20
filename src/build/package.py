@@ -97,7 +97,7 @@ def update_build_config(log: loggers.Logger) -> None:
     )
 
     with open(__RESOURCE__.cfg('build.yml'), 'w+') as wf:
-        yaml.dump(log_data)
+        yaml.dump(log_data, wf)
 
     log.info('Updated build log')
 
